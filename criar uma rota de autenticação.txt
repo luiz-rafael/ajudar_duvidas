@@ -1,0 +1,79 @@
+Instale as bibliotecas necessárias: você precisará instalar as bibliotecas djangorestframework e djangorestframework-simplejwt para criar uma rota de autenticação JWT no Django. Você pode instalar essas bibliotecas usando o pip, por exemplo:
+
+Copy code
+pip install djangorestframework
+pip install djangorestframework-simplejwt
+Configure as configurações do Django REST Framework: no seu arquivo settings.py, adicione as seguintes configurações:
+
+python
+Copy code
+INSTALLED_APPS = [
+    # ...
+    'rest_framework',
+    'rest_framework_simplejwt',
+    # ...
+]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # ...
+    ),
+}
+Isso configura o Django REST Framework para usar a autenticação JWT padrão para todas as suas rotas.
+
+Crie uma rota de autenticação: você pode criar uma rota de autenticação no seu arquivo urls.py que aceite autenticar com usuário e senha e retorne um JWT para chamadas de API. Aqui está um exemplo:
+
+python
+Copy code
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+urlpatterns = [
+    # ...
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # ...
+]
+Isso cria duas rotas de autenticação: uma rota api/token/ que aceita autenticar com usuário e senha e retorna um JWT, e uma rota api/token/refresh/ que aceita um JWT expirado e retorna um novo JWT válido.
+
+Crie um serializer de autenticação: você precisará criar um serializer que aceite um nome de usuário e uma senha e valide as credenciais. Aqui está um exemplo:
+
+python
+Copy code
+from django.contrib.auth import authenticate
+from rest_framework import serializers
+
+class AuthTokenSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(
+        style={'input_type': 'password'},
+        trim_whitespace=False
+    )
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        password = attrs.get('password')
+
+        user = authenticate(
+            request=self.context.get('request'),
+            username=username,
+            password=password
+        )
+        if not user:
+            msg = 'Não foi possível autenticar com as credenciais fornecidas'
+            raise serializers.ValidationError(msg, code='authorization')
+
+        attrs['user'] = user
+        return attrs
+Este serializer aceita um nome de usuário e uma senha e usa a função authenticate do Django para validar as credenciais. Se as credenciais forem válidas, ele retorna um dicionário contendo o usuário autenticado.
+
+Crie uma view de autenticação: você precisará criar uma view que use o serializer de autenticação para autenticar o usuário e gerar um JWT. Aqui está um exemplo:
+
+python
+Copy code
+from rest_framework import status
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from
